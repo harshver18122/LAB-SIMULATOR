@@ -47,11 +47,11 @@ interface AppContextType {
   setRole: (role: UserRole) => void;
   isAuthLoading: boolean;
   isLoadingData: boolean;
-  loginWithEmail: (email: string, pass: string) => Promise<boolean>;
-  registerWithEmail: (email: string, pass: string, name: string, role?: UserRole) => Promise<boolean>;
-  signInGoogle: (role?: UserRole) => Promise<boolean>;
+  loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean; error?: string; code?: string }>;
+  registerWithEmail: (email: string, pass: string, name: string, role?: UserRole) => Promise<{ success: boolean; error?: string; code?: string }>;
+  signInGoogle: (role?: UserRole) => Promise<{ success: boolean; error?: string; code?: string }>;
   logout: () => Promise<void>;
-  sendResetPassword: (email: string) => Promise<boolean>;
+  sendResetPassword: (email: string) => Promise<{ success: boolean; error?: string; code?: string }>;
   resendVerification: () => Promise<boolean>;
   reloadAuthState: () => Promise<boolean>;
   handleAuthAction: (mode: string, oobCode: string, extraPass?: string) => Promise<boolean>;
@@ -206,48 +206,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Switched persona to ${role.toUpperCase()}`, 'info');
   };
 
-  const loginWithEmail = async (email: string, pass: string): Promise<boolean> => {
+  const loginWithEmail = async (email: string, pass: string): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
       const loggedUser = await loginUserWithEmail(email, pass);
       setUser(loggedUser);
       showToast(`Welcome back, ${loggedUser.name}! Logged in successfully.`, 'success');
       setIsAuthLoading(false);
-      return true;
+      return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
-      return false;
+      const code = err?.code || '';
+      const formattedError = formatAuthError(code);
+      showToast(formattedError, 'error');
+      return { success: false, error: formattedError, code };
     }
   };
 
-  const registerWithEmail = async (email: string, pass: string, name: string, role: UserRole = 'student'): Promise<boolean> => {
+  const registerWithEmail = async (email: string, pass: string, name: string, role: UserRole = 'student'): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
       const newUser = await registerUserWithEmail(email, pass, name, role);
       setUser(newUser);
       showToast(`Account created! Welcome to AI Lab Simulator, ${name}.`, 'success');
       setIsAuthLoading(false);
-      return true;
+      return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
-      return false;
+      const code = err?.code || '';
+      const formattedError = formatAuthError(code);
+      showToast(formattedError, 'error');
+      return { success: false, error: formattedError, code };
     }
   };
 
-  const signInGoogle = async (role: UserRole = 'student'): Promise<boolean> => {
+  const signInGoogle = async (role: UserRole = 'student'): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
       const googleUser = await loginWithGoogle(role);
       setUser(googleUser);
       showToast(`Signed in with Google as ${googleUser.name}`, 'success');
       setIsAuthLoading(false);
-      return true;
+      return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
-      return false;
+      const code = err?.code || '';
+      const formattedError = formatAuthError(code);
+      showToast(formattedError, 'error');
+      return { success: false, error: formattedError, code };
     }
   };
 
@@ -257,17 +263,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Signed out of AI Lab Simulator', 'info');
   };
 
-  const sendResetPassword = async (email: string): Promise<boolean> => {
+  const sendResetPassword = async (email: string): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
       await resetPassword(email);
       showToast('Password reset link sent to your email address!', 'info');
       setIsAuthLoading(false);
-      return true;
+      return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
-      return false;
+      const code = err?.code || '';
+      const formattedError = formatAuthError(code);
+      showToast(formattedError, 'error');
+      return { success: false, error: formattedError, code };
     }
   };
 

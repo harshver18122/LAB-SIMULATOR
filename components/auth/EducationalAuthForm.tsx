@@ -55,11 +55,13 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
 
   // Status Banners
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setMode(initialMode);
     setErrorMessage(null);
+    setErrorCode(null);
     setSuccessMessage(null);
   }, [initialMode]);
 
@@ -71,6 +73,7 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
 
   const handleModeChange = (newMode: 'login' | 'register' | 'forgot' | 'sent-reset') => {
     setErrorMessage(null);
+    setErrorCode(null);
     setSuccessMessage(null);
     setMode(newMode);
   };
@@ -78,6 +81,7 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setErrorCode(null);
     setSuccessMessage(null);
 
     // Basic client validation
@@ -91,13 +95,14 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
         setErrorMessage('Please enter your password.');
         return;
       }
-      const success = await loginWithEmail(email, password);
-      if (success) {
+      const res = await loginWithEmail(email, password);
+      if (res.success) {
         triggerCelebration();
         if (onSuccess) onSuccess();
         if (isModal) closeAuthModal();
       } else {
-        setErrorMessage('Incorrect email or password credentials. Please try again.');
+        setErrorMessage(res.error || 'Incorrect email or password credentials. Please try again.');
+        setErrorCode(res.code || null);
       }
       return;
     }
@@ -111,25 +116,27 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
         setErrorMessage('Password must be at least 6 characters long.');
         return;
       }
-      const success = await registerWithEmail(email, password, name.trim(), role);
-      if (success) {
+      const res = await registerWithEmail(email, password, name.trim(), role);
+      if (res.success) {
         triggerCelebration();
         setSuccessMessage('Account created! A verification link has been sent to your email.');
         if (onSuccess) onSuccess();
         if (isModal) closeAuthModal();
       } else {
-        setErrorMessage('Failed to create account. Email may already be registered.');
+        setErrorMessage(res.error || 'Failed to create account. Email may already be registered.');
+        setErrorCode(res.code || null);
       }
       return;
     }
 
     if (mode === 'forgot' || mode === 'sent-reset') {
-      const success = await sendResetPassword(email);
-      if (success) {
+      const res = await sendResetPassword(email);
+      if (res.success) {
         setSuccessMessage(`Password reset link sent to ${email}. Check your inbox.`);
         setMode('sent-reset');
       } else {
-        setErrorMessage('Unable to send password reset email. Please verify your email address.');
+        setErrorMessage(res.error || 'Unable to send password reset email. Please verify your email address.');
+        setErrorCode(res.code || null);
       }
       return;
     }
@@ -137,12 +144,16 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
 
   const handleGoogleSignIn = async () => {
     setErrorMessage(null);
+    setErrorCode(null);
     setSuccessMessage(null);
-    const success = await signInGoogle(role);
-    if (success) {
+    const res = await signInGoogle(role);
+    if (res.success) {
       triggerCelebration();
       if (onSuccess) onSuccess();
       if (isModal) closeAuthModal();
+    } else {
+      setErrorMessage(res.error || 'Google sign-in failed.');
+      setErrorCode(res.code || null);
     }
   };
 
@@ -204,11 +215,46 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
 
       {/* Inline Status Banners */}
       {errorMessage && (
-        <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2 animate-in fade-in">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
-          <div className="flex-1">
-            <p className="font-semibold">{errorMessage}</p>
+        <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs space-y-2 animate-in fade-in">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
+            <div className="flex-1">
+              <p className="font-bold">{errorMessage}</p>
+            </div>
           </div>
+
+          {/* Quick Action Triggers for Already Registered Email */}
+          {errorCode === 'auth/email-already-in-use' && (
+            <div className="pt-2 border-t border-red-200/60 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleModeChange('login')}
+                className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[11px] transition-colors shadow-2xs"
+              >
+                Log In with this Email →
+              </button>
+              <button
+                type="button"
+                onClick={() => handleModeChange('forgot')}
+                className="px-3 py-1.5 rounded-lg bg-white border border-red-300 text-red-700 hover:bg-red-100/60 font-semibold text-[11px] transition-colors"
+              >
+                Reset Password
+              </button>
+            </div>
+          )}
+
+          {/* Quick Action Triggers for User Not Found */}
+          {errorCode === 'auth/user-not-found' && (
+            <div className="pt-2 border-t border-red-200/60 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleModeChange('register')}
+                className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[11px] transition-colors shadow-2xs"
+              >
+                Create Account for {email} →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
