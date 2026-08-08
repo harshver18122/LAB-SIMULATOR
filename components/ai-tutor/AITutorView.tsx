@@ -15,7 +15,6 @@ import {
   X,
   Plus,
   MessageSquare,
-  Bookmark,
   FileCheck
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
@@ -102,43 +101,46 @@ export const AITutorView: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       
-      {/* ChatGPT / Academic Interface Layout */}
-      <div className="academic-card overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      {/* Interface Container */}
+      <div className="glass-card overflow-hidden grid grid-cols-1 lg:grid-cols-12 min-h-[660px] border border-slate-200 shadow-xl">
         
-        {/* LEFT SIDEBAR: New Chat, Recent Chats, Saved Topics, Quick Actions */}
-        <div className="lg:col-span-4 border-r border-slate-200 p-4 bg-slate-50 space-y-6 flex flex-col justify-between">
+        {/* LEFT SIDEBAR */}
+        <div className="lg:col-span-4 border-r border-slate-200/80 p-5 bg-slate-50/70 space-y-6 flex flex-col justify-between">
           <div className="space-y-5">
             
             {/* AI Tutor Profile */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white border border-slate-200 shadow-xs">
-              <div className="w-10 h-10 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-bold">
-                <Bot className="w-5 h-5" />
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-[#0F2942] to-[#2563EB] text-white flex items-center justify-center font-bold shadow-md">
+                <Bot className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="font-bold text-sm text-[#0F2942] flex items-center gap-1.5">
                   Dr. Nova AI
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                  </span>
                 </h3>
-                <p className="text-[11px] text-slate-500">Virtual Science Professor</p>
+                <p className="text-[11px] text-slate-500 font-medium">Virtual Science Professor</p>
               </div>
             </div>
 
             {/* New Chat Button */}
             <button
               onClick={clearAIChat}
-              className="w-full py-2.5 px-3 rounded-lg bg-[#0F2942] hover:bg-[#153454] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors"
+              className="w-full py-2.5 px-3 rounded-xl bg-[#0F2942] hover:bg-[#153454] text-white text-xs font-bold flex items-center justify-center gap-2 shadow-xs transition-all"
             >
               <Plus className="w-4 h-4" /> New Conversation
             </button>
 
-            {/* Quick Actions (Section 10 Requirement) */}
+            {/* Quick Actions */}
             <div className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Quick AI Actions</div>
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Quick AI Actions</div>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => handleQuickAction('summary')}
-                  className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-colors flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-all flex items-center gap-1.5 shadow-2xs"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                   Explain Simply
@@ -146,7 +148,7 @@ export const AITutorView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickAction('summary')}
-                  className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-colors flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-all flex items-center gap-1.5 shadow-2xs"
                 >
                   <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                   Summarize
@@ -154,7 +156,7 @@ export const AITutorView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickAction('quiz')}
-                  className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-colors flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-all flex items-center gap-1.5 shadow-2xs"
                 >
                   <HelpCircle className="w-3.5 h-3.5 text-purple-500 shrink-0" />
                   Generate Quiz
@@ -162,7 +164,7 @@ export const AITutorView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleQuickAction('notes')}
-                  className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-colors flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-blue-50 hover:text-[#2563EB] text-[11px] font-semibold text-slate-700 transition-all flex items-center gap-1.5 shadow-2xs"
                 >
                   <FileCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   Generate Notes
@@ -172,15 +174,15 @@ export const AITutorView: React.FC = () => {
 
             {/* Recent & Saved Chats */}
             <div className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Recent Chats</div>
+              <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Recent Chats</div>
               <div className="space-y-1">
                 {recentChats.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setActiveChatId(c.id)}
-                    className={`w-full text-left p-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                    className={`w-full text-left p-2.5 rounded-xl text-xs flex items-center justify-between transition-colors ${
                       activeChatId === c.id 
-                        ? 'bg-blue-50 text-[#2563EB] font-bold border border-blue-200' 
+                        ? 'bg-blue-50 text-[#2563EB] font-bold border border-blue-200/80 shadow-2xs' 
                         : 'text-slate-700 hover:bg-white border border-transparent'
                     }`}
                   >
@@ -199,14 +201,14 @@ export const AITutorView: React.FC = () => {
           {/* Clear History */}
           <button
             onClick={clearAIChat}
-            className="w-full py-2 rounded-lg border border-slate-200 bg-white hover:bg-red-50 text-xs font-semibold text-slate-600 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-red-50 text-xs font-bold text-slate-600 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5"
           >
             <Trash2 className="w-3.5 h-3.5" /> Clear History
           </button>
         </div>
 
         {/* RIGHT MAIN CHAT AREA */}
-        <div className="lg:col-span-8 flex flex-col justify-between h-[640px] bg-white">
+        <div className="lg:col-span-8 flex flex-col justify-between h-[660px] bg-white">
           
           {/* Feed */}
           <div className="flex-1 p-6 overflow-y-auto space-y-4">
@@ -215,18 +217,18 @@ export const AITutorView: React.FC = () => {
                 key={msg.id}
                 className={`flex items-start gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-xs ${
-                  msg.sender === 'user' ? 'bg-[#0F2942]' : 'bg-[#2563EB]'
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-xs shadow-md ${
+                  msg.sender === 'user' ? 'bg-[#0F2942]' : 'bg-gradient-to-tr from-[#2563EB] to-[#06B6D4]'
                 }`}>
                   {msg.sender === 'user' ? 'YOU' : <Bot className="w-4 h-4" />}
                 </div>
 
-                <div className={`max-w-lg p-4 rounded-xl text-xs space-y-1 ${
+                <div className={`max-w-lg p-4 rounded-2xl text-xs space-y-1.5 shadow-2xs ${
                   msg.sender === 'user'
                     ? 'bg-[#0F2942] text-white rounded-tr-none'
                     : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-200'
                 }`}>
-                  <div className="flex items-center justify-between text-[10px] opacity-70 mb-1">
+                  <div className="flex items-center justify-between text-[10px] opacity-70 mb-1 font-bold">
                     <span>{msg.sender === 'user' ? 'Student' : 'Dr. Nova AI'}</span>
                     <span>{msg.timestamp}</span>
                   </div>
@@ -237,27 +239,29 @@ export const AITutorView: React.FC = () => {
           </div>
 
           {/* Quick Prompt Chips */}
-          <div className="px-6 py-2 border-t border-slate-100 bg-slate-50/50 overflow-x-auto flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">Prompts:</span>
+          <div className="px-6 py-2.5 border-t border-slate-100 bg-slate-50/50 overflow-x-auto flex items-center gap-2">
+            <span className="text-[10px] font-extrabold text-slate-400 uppercase shrink-0 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-[#2563EB]" /> Suggested:
+            </span>
             {suggestedPrompts.map((p, i) => (
               <button
                 key={i}
                 onClick={() => { setInputText(p); }}
-                className="px-2.5 py-1 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-700 hover:border-[#2563EB] whitespace-nowrap"
+                className="px-3 py-1 rounded-full bg-white border border-slate-200/80 text-[11px] font-semibold text-slate-700 hover:border-[#2563EB] hover:text-[#2563EB] whitespace-nowrap shadow-2xs transition-all"
               >
                 {p}
               </button>
             ))}
           </div>
 
-          {/* Section 10 Input Bar (Send, Voice, Upload Image, Upload PDF) */}
+          {/* Input Bar */}
           <form onSubmit={handleSend} className="p-4 border-t border-slate-200 bg-white flex items-center gap-2">
             
-            {/* Upload PDF / Image Button */}
+            {/* Upload Button */}
             <button
               type="button"
               onClick={() => setUploadModalOpen(true)}
-              className="p-2.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600"
+              className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors"
               title="Upload PDF or Image"
             >
               <Paperclip className="w-4 h-4" />
@@ -267,9 +271,9 @@ export const AITutorView: React.FC = () => {
             <button
               type="button"
               onClick={handleVoiceToggle}
-              className={`p-2.5 rounded-lg border transition-colors ${
+              className={`p-2.5 rounded-xl border transition-all ${
                 isListening
-                  ? 'bg-red-500 text-white border-red-500 animate-pulse'
+                  ? 'bg-red-500 text-white border-red-500 animate-pulse shadow-md'
                   : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
               }`}
               title="Voice Input"
@@ -280,16 +284,16 @@ export const AITutorView: React.FC = () => {
             {/* Text Input */}
             <input
               type="text"
-              placeholder={uploadedFileName ? `Attached: ${uploadedFileName} - Ask question...` : "Ask your question..."}
+              placeholder={uploadedFileName ? `Attached: ${uploadedFileName} - Ask question...` : "Ask any science question..."}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 px-4 py-2.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#2563EB]"
+              className="flex-1 px-4 py-2.5 text-xs rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:outline-none focus:border-[#2563EB] shadow-2xs"
             />
 
             {/* Send Button */}
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold shadow-xs transition-all flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
             >
               <span>Send</span>
               <Send className="w-3.5 h-3.5" />
@@ -312,7 +316,7 @@ export const AITutorView: React.FC = () => {
             <p className="text-xs text-slate-500">Attach a lab manual PDF or experiment diagram image for AI analysis.</p>
 
             <div className="space-y-3">
-              <label className="w-full p-3 rounded-lg border border-dashed border-[#2563EB] bg-blue-50/50 hover:bg-blue-50 text-xs font-semibold text-[#2563EB] flex items-center justify-center gap-2 cursor-pointer">
+              <label className="w-full p-3.5 rounded-xl border border-dashed border-[#2563EB] bg-blue-50/50 hover:bg-blue-50 text-xs font-bold text-[#2563EB] flex items-center justify-center gap-2 cursor-pointer transition-all">
                 {uploading ? (
                   <svg className="w-4 h-4 animate-spin text-[#2563EB]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
@@ -330,11 +334,11 @@ export const AITutorView: React.FC = () => {
                 />
               </label>
 
-              <div className="text-[10px] text-slate-400 text-center font-bold uppercase">Or Choose Sample File</div>
+              <div className="text-[10px] text-slate-400 text-center font-extrabold uppercase">Or Choose Sample File</div>
 
               <button
                 onClick={() => handleSimulatedFileUpload('Sample_Physics_Diagram.png')}
-                className="w-full p-2.5 rounded-lg border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-2"
+                className="w-full p-3 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-2 shadow-2xs"
               >
                 <FileText className="w-4 h-4 text-blue-500" />
                 Sample_Physics_Diagram.png
