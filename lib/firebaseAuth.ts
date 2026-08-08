@@ -2,6 +2,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signOut, 
   sendPasswordResetEmail,
   sendEmailVerification,
@@ -150,6 +152,25 @@ export const loginUserWithEmail = async (email: string, pass: string) => {
   return await syncUserProfileToFirestore(userCredential.user);
 };
 
+export const loginWithGoogleRedirect = async () => {
+  if (isFirebaseConfigured()) {
+    await signInWithRedirect(auth, googleProvider);
+  }
+};
+
+export const checkGoogleRedirectResult = async (): Promise<UserProfile | null> => {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      return await syncUserProfileToFirestore(result.user, result.user.displayName || 'Google User');
+    }
+  } catch (e) {
+    console.warn('Redirect result check warning:', e);
+  }
+  return null;
+};
+
 export const loginWithGoogle = async (role: UserRole = 'student') => {
   if (!isFirebaseConfigured()) {
     return {
@@ -165,8 +186,17 @@ export const loginWithGoogle = async (role: UserRole = 'student') => {
     } as UserProfile;
   }
 
-  const result = await signInWithPopup(auth, googleProvider);
-  return await syncUserProfileToFirestore(result.user, result.user.displayName || 'Google User', role);
+  try {
+    const result = await signInWithPopup(auth, googleProvider);
+    return await syncUserProfileToFirestore(result.user, result.user.displayName || 'Google User', role);
+  } catch (err: any) {
+    if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') {
+      console.warn('Google popup blocked/closed. Initiating redirect authentication fallback...');
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
+    throw err;
+  }
 };
 
 export const logoutUser = async () => {

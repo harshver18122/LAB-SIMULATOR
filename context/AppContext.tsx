@@ -10,6 +10,8 @@ import {
   registerUserWithEmail, 
   loginUserWithEmail, 
   loginWithGoogle, 
+  loginWithGoogleRedirect,
+  checkGoogleRedirectResult,
   logoutUser, 
   resetPassword, 
   syncUserProfileToFirestore,
@@ -122,11 +124,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [darkMode, setDarkMode] = useState(false);
 
-  // 1. Firebase Auth listener
+  // 1. Firebase Auth listener & Google Redirect result check
   useEffect(() => {
     if (!isFirebaseConfigured()) return;
 
     setIsAuthLoading(true);
+
+    // Check if returning from Google Redirect Auth flow
+    checkGoogleRedirectResult().then((redirectProfile) => {
+      if (redirectProfile) {
+        setUser(redirectProfile);
+        showToast(`Signed in with Google as ${redirectProfile.name}`, 'success');
+      }
+    }).catch((err) => {
+      console.warn('Google Redirect processing warning:', err);
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
@@ -244,8 +257,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsAuthLoading(true);
     try {
       const googleUser = await loginWithGoogle(role);
-      setUser(googleUser);
-      showToast(`Signed in with Google as ${googleUser.name}`, 'success');
+      if (googleUser) {
+        setUser(googleUser);
+        showToast(`Signed in with Google as ${googleUser.name}`, 'success');
+      }
       setIsAuthLoading(false);
       return { success: true };
     } catch (err: any) {

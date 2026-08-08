@@ -20,7 +20,7 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
-import { formatAuthError } from '../../lib/firebaseAuth';
+import { formatAuthError, loginWithGoogleRedirect } from '../../lib/firebaseAuth';
 
 interface EducationalAuthFormProps {
   initialMode?: 'login' | 'register' | 'forgot' | 'sent-reset';
@@ -252,6 +252,19 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
                 className="px-3 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[11px] transition-colors shadow-2xs"
               >
                 Create Account for {email} →
+              </button>
+            </div>
+          )}
+
+          {/* Quick Action Triggers for Google Popup Blocked/Closed */}
+          {(errorCode === 'auth/popup-blocked' || errorCode === 'auth/popup-closed-by-user') && (
+            <div className="pt-2 border-t border-red-200/60 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { loginWithGoogleRedirect(); }}
+                className="px-3.5 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[11px] transition-colors shadow-2xs flex items-center gap-1.5"
+              >
+                <span>Continue with Google via Redirect →</span>
               </button>
             </div>
           )}
