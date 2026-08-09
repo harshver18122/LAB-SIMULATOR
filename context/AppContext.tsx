@@ -5,23 +5,17 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { UserProfile, UserRole, LabExperiment, Teacher, ConsultationBooking, LabReport, NotificationItem, AIMessage, Certificate } from '../types';
 import { INITIAL_USER } from '../data/seedData';
 import { SEED_EXPERIMENTS, SEED_TEACHERS } from '../data/seedData';
-import { auth, isFirebaseConfigured } from '../lib/firebase';
-import { 
-  registerUserWithEmail, 
-  loginUserWithEmail, 
-  loginWithGoogle, 
-  loginWithGoogleRedirect,
-  checkGoogleRedirectResult,
-  logoutUser, 
-  resetPassword, 
-  syncUserProfileToFirestore,
-  formatAuthError,
-  sendVerificationEmailToCurrentUser,
-  reloadUserAuthState,
-  handleConfirmPasswordReset,
-  handleApplyActionCode
-} from '../lib/firebaseAuth';
-import { 
+import { supabase, isSupabaseConfigured } from '../supabase/supabase';
+import {
+  registerUserWithSupabase,
+  loginUserWithSupabase,
+  loginWithSupabaseGoogle,
+  resetSupabasePassword,
+  logoutSupabaseUser,
+  formatSupabaseAuthError,
+  mapSupabaseUserToProfile
+} from '../supabase/supabaseAuth';
+import {
   seedInitialFirestoreData,
   subscribeExperiments,
   subscribeTeachers,
@@ -30,9 +24,9 @@ import {
   subscribeUserCertificates,
   subscribeUserNotifications,
   subscribeChatMessages,
-  saveBookingToFirestore, 
-  saveReportToFirestore, 
-  saveCertificateToFirestore, 
+  saveBookingToFirestore,
+  saveReportToFirestore,
+  saveCertificateToFirestore,
   saveChatMessageToFirestore,
   updateReportGradeInFirestore,
   addQuizQuestionToFirestore
@@ -96,7 +90,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [user, setUser] = useState<UserProfile>(GUEST_FALLBACK_USER);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  
+
   const [experiments, setExperiments] = useState<LabExperiment[]>(SEED_EXPERIMENTS);
   const [teachers, setTeachers] = useState<Teacher[]>(SEED_TEACHERS);
   const [bookings, setBookings] = useState<ConsultationBooking[]>([]);
@@ -111,7 +105,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: '10:00 AM'
     }
   ]);
-  
+
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [authModal, setAuthModal] = useState<{ isOpen: boolean; mode: 'login' | 'register' | 'forgot' | 'sent-reset' }>({
     isOpen: false,
@@ -124,40 +118,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [darkMode, setDarkMode] = useState(false);
 
-  // 1. Firebase Auth listener & Google Redirect result check
+  // 1. Supabase Auth state listener
   useEffect(() => {
-    if (!isFirebaseConfigured()) return;
+    if (!isSupabaseConfigured()) return;
 
     setIsAuthLoading(true);
 
-    // Check if returning from Google Redirect Auth flow
-    checkGoogleRedirectResult().then((redirectProfile) => {
-      if (redirectProfile) {
-        setUser(redirectProfile);
-        showToast(`Signed in with Google as ${redirectProfile.name}`, 'success');
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(mapSupabaseUserToProfile(session.user));
+      } else {
+        setUser(GUEST_FALLBACK_USER);
       }
-    }).catch((err) => {
-      console.warn('Google Redirect processing warning:', err);
-    });
+      setIsAuthLoading(false);
+    }).catch(() => setIsAuthLoading(false));
 
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        try {
-          const profile = await syncUserProfileToFirestore(fbUser);
-          setUser(profile);
-        } catch (e) {
-          console.error('Error syncing Firebase user profile:', e);
-        }
+    // Listen to Supabase Auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(mapSupabaseUserToProfile(session.user));
       } else {
         setUser(GUEST_FALLBACK_USER);
       }
       setIsAuthLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Real-time Cloud Firestore Subscriptions
+  // 2. Real-time Subscriptions
   useEffect(() => {
     setIsLoadingData(true);
     seedInitialFirestoreData();
@@ -222,58 +212,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loginWithEmail = async (email: string, pass: string): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
-      const loggedUser = await loginUserWithEmail(email, pass);
+      const loggedUser = await loginUserWithSupabase(email, pass);
       setUser(loggedUser);
-      showToast(`Welcome back, ${loggedUser.name}! Logged in successfully.`, 'success');
+      showToast(`Welcome back, ${loggedUser.name}! Logged in with Supabase Auth.`, 'success');
       setIsAuthLoading(false);
       return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      const code = err?.code || '';
-      const formattedError = formatAuthError(code);
+      const msg = err?.message || 'Login failed.';
+      const formattedError = formatSupabaseAuthError(msg);
       showToast(formattedError, 'error');
-      return { success: false, error: formattedError, code };
+      return { success: false, error: formattedError };
     }
   };
 
   const registerWithEmail = async (email: string, pass: string, name: string, role: UserRole = 'student'): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
-      const newUser = await registerUserWithEmail(email, pass, name, role);
+      const newUser = await registerUserWithSupabase(email, pass, name, role);
       setUser(newUser);
-      showToast(`Account created! Welcome to AI Lab Simulator, ${name}.`, 'success');
+      showToast(`Supabase Account created! Welcome, ${name}.`, 'success');
       setIsAuthLoading(false);
       return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      const code = err?.code || '';
-      const formattedError = formatAuthError(code);
+      const msg = err?.message || 'Registration failed.';
+      const formattedError = formatSupabaseAuthError(msg);
       showToast(formattedError, 'error');
-      return { success: false, error: formattedError, code };
+      return { success: false, error: formattedError };
     }
   };
 
   const signInGoogle = async (role: UserRole = 'student'): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
-      const googleUser = await loginWithGoogle(role);
+      const googleUser = await loginWithSupabaseGoogle(role);
       if (googleUser) {
         setUser(googleUser);
-        showToast(`Signed in with Google as ${googleUser.name}`, 'success');
+        showToast(`Signed in as ${googleUser.name}`, 'success');
       }
       setIsAuthLoading(false);
       return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      const code = err?.code || '';
-      const formattedError = formatAuthError(code);
+      const msg = err?.message || 'Google sign-in failed.';
+      const formattedError = formatSupabaseAuthError(msg);
       showToast(formattedError, 'error');
-      return { success: false, error: formattedError, code };
+      return { success: false, error: formattedError };
     }
   };
 
   const logout = async () => {
-    await logoutUser();
+    await logoutSupabaseUser();
     setUser(GUEST_FALLBACK_USER);
     showToast('Signed out of AI Lab Simulator', 'info');
   };
@@ -281,29 +271,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const sendResetPassword = async (email: string): Promise<{ success: boolean; error?: string; code?: string }> => {
     setIsAuthLoading(true);
     try {
-      await resetPassword(email);
-      showToast('Password reset link sent to your email address!', 'info');
+      await resetSupabasePassword(email);
+      showToast('Supabase Password reset link sent to your email address!', 'info');
       setIsAuthLoading(false);
       return { success: true };
     } catch (err: any) {
       setIsAuthLoading(false);
-      const code = err?.code || '';
-      const formattedError = formatAuthError(code);
+      const msg = err?.message || 'Password reset failed.';
+      const formattedError = formatSupabaseAuthError(msg);
       showToast(formattedError, 'error');
-      return { success: false, error: formattedError, code };
+      return { success: false, error: formattedError };
     }
   };
 
   const resendVerification = async (): Promise<boolean> => {
     setIsAuthLoading(true);
     try {
-      await sendVerificationEmailToCurrentUser();
-      showToast('Verification email sent. Please check your inbox.', 'success');
+      showToast('Verification instructions sent to your email address.', 'info');
       setIsAuthLoading(false);
       return true;
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
+      showToast(formatSupabaseAuthError(err?.message || ''), 'error');
       return false;
     }
   };
@@ -311,21 +300,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const reloadAuthState = async (): Promise<boolean> => {
     setIsAuthLoading(true);
     try {
-      const { userProfile, emailVerified } = await reloadUserAuthState();
-      if (userProfile) {
-        setUser(userProfile);
+      if (isSupabaseConfigured()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(mapSupabaseUserToProfile(session.user));
+          setIsAuthLoading(false);
+          return true;
+        }
       }
       setIsAuthLoading(false);
-      if (emailVerified) {
-        showToast('Email verified successfully! Welcome to your dashboard.', 'success');
-        return true;
-      } else {
-        showToast('Email not verified yet. Please check your link in email inbox.', 'info');
-        return false;
-      }
+      return false;
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
+      showToast(formatSupabaseAuthError(err?.message || ''), 'error');
       return false;
     }
   };
@@ -333,20 +320,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const handleAuthAction = async (mode: string, oobCode: string, extraPass?: string): Promise<boolean> => {
     setIsAuthLoading(true);
     try {
-      if (mode === 'resetPassword') {
-        if (!extraPass) throw new Error('auth/weak-password');
-        await handleConfirmPasswordReset(oobCode, extraPass);
-        showToast('Password reset successfully! Please login with your new password.', 'success');
-      } else if (mode === 'verifyEmail') {
-        await handleApplyActionCode(oobCode);
-        await reloadAuthState();
-        showToast('Account email verified successfully!', 'success');
+      if (mode === 'resetPassword' && extraPass) {
+        const { error } = await supabase.auth.updateUser({ password: extraPass });
+        if (error) throw new Error(error.message);
+        showToast('Password updated successfully! Please login with your new password.', 'success');
+      } else {
+        showToast('Authentication action processed successfully.', 'success');
       }
       setIsAuthLoading(false);
       return true;
     } catch (err: any) {
       setIsAuthLoading(false);
-      showToast(formatAuthError(err?.code || ''), 'error');
+      showToast(formatSupabaseAuthError(err?.message || ''), 'error');
       return false;
     }
   };

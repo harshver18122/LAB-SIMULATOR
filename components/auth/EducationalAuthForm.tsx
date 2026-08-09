@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Mail, 
   Lock, 
@@ -10,17 +11,15 @@ import {
   EyeOff, 
   GraduationCap, 
   BookOpen, 
-  Microscope, 
+  ShieldAlert, 
   CheckCircle2, 
   AlertCircle,
   Loader2,
-  RefreshCw,
-  FlaskConical
+  RefreshCw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
-import { formatAuthError, loginWithGoogleRedirect } from '../../lib/firebaseAuth';
 
 interface EducationalAuthFormProps {
   initialMode?: 'login' | 'register' | 'forgot' | 'sent-reset';
@@ -33,11 +32,13 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
   onSuccess,
   isModal = false
 }) => {
+  const router = useRouter();
   const { 
     loginWithEmail, 
     registerWithEmail, 
     signInGoogle, 
     sendResetPassword,
+    setRole: setGlobalRole,
     isAuthLoading,
     showToast,
     closeAuthModal
@@ -71,6 +72,12 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
     } catch (e) {}
   };
 
+  const getTargetDashboard = (targetRole: UserRole) => {
+    if (targetRole === 'teacher') return '/dashboard/teacher';
+    if (targetRole === 'owner' || targetRole === 'admin') return '/dashboard/admin';
+    return '/dashboard/student';
+  };
+
   const handleModeChange = (newMode: 'login' | 'register' | 'forgot' | 'sent-reset') => {
     setErrorMessage(null);
     setErrorCode(null);
@@ -98,8 +105,10 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
       const res = await loginWithEmail(email, password);
       if (res.success) {
         triggerCelebration();
+        setGlobalRole(role);
         if (onSuccess) onSuccess();
         if (isModal) closeAuthModal();
+        router.push(getTargetDashboard(role));
       } else {
         setErrorMessage(res.error || 'Incorrect email or password credentials. Please try again.');
         setErrorCode(res.code || null);
@@ -119,9 +128,11 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
       const res = await registerWithEmail(email, password, name.trim(), role);
       if (res.success) {
         triggerCelebration();
+        setGlobalRole(role);
         setSuccessMessage('Account created! A verification link has been sent to your email.');
         if (onSuccess) onSuccess();
         if (isModal) closeAuthModal();
+        router.push(getTargetDashboard(role));
       } else {
         setErrorMessage(res.error || 'Failed to create account. Email may already be registered.');
         setErrorCode(res.code || null);
@@ -149,15 +160,17 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
     const res = await signInGoogle(role);
     if (res.success) {
       triggerCelebration();
+      setGlobalRole(role);
       if (onSuccess) onSuccess();
       if (isModal) closeAuthModal();
+      router.push(getTargetDashboard(role));
     } else {
       setErrorMessage(res.error || 'Google sign-in failed.');
       setErrorCode(res.code || null);
     }
   };
 
-  const handleAutofillDemo = (demoRole: 'student' | 'teacher' | 'admin') => {
+  const handleAutofillDemo = (demoRole: 'student' | 'teacher' | 'owner') => {
     setRole(demoRole);
     setErrorMessage(null);
     setSuccessMessage(null);
@@ -170,26 +183,26 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
       setPassword('Teacher#2026');
       setName('Dr. Sarah Jenkins');
     } else {
-      setEmail('admin.stem@inst.edu');
-      setPassword('AdminPass#2026');
+      setEmail('owner@ailabs.edu');
+      setPassword('OwnerPass#2026');
       setName('Prof. Robert Chen');
     }
-    showToast(`Autofilled credentials for ${demoRole.toUpperCase()}`, 'info');
+    showToast(`Autofilled login credentials for ${demoRole.toUpperCase()}`, 'info');
   };
 
   return (
     <div className="w-full space-y-4 text-slate-800">
       
-      {/* Role Selection Tabs */}
+      {/* Role / Persona Selection Tabs */}
       <div>
-        <label className="block text-[11px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
-          Academic Persona
+        <label className="block text-[10px] font-extrabold tracking-wider uppercase text-slate-400 mb-1.5">
+          Select Academic Persona / Role
         </label>
         <div className="grid grid-cols-3 gap-2">
           {[
-            { id: 'student', title: 'Student', icon: GraduationCap },
-            { id: 'teacher', title: 'Teacher', icon: BookOpen },
-            { id: 'admin', title: 'Researcher', icon: Microscope }
+            { id: 'student', title: 'Student', desc: 'Learner Portal', icon: GraduationCap },
+            { id: 'teacher', title: 'Teacher', fontDesc: 'Faculty', icon: BookOpen },
+            { id: 'owner', title: 'Owner', fontDesc: 'Governance', icon: ShieldAlert }
           ].map((r) => {
             const IconComponent = r.icon;
             const isSelected = role === r.id;
@@ -199,21 +212,21 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
                 type="button"
                 disabled={isAuthLoading}
                 onClick={() => setRole(r.id as UserRole)}
-                className={`py-2 px-3 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+                className={`py-2.5 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all ${
                   isSelected 
-                    ? 'bg-[#0F2942] text-white border-[#0F2942] shadow-xs' 
-                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                    ? 'bg-[#0F2942] text-white border-[#0F2942] shadow-md ring-2 ring-[#0F2942]/20' 
+                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300'
                 }`}
               >
-                <IconComponent className="w-3.5 h-3.5" />
-                <span>{r.title}</span>
+                <IconComponent className="w-4 h-4" />
+                <span className="leading-none">{r.title}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Inline Status Banners */}
+      {/* Inline Error & Status Banners */}
       {errorMessage && (
         <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs space-y-2 animate-in fade-in">
           <div className="flex items-start gap-2">
@@ -261,7 +274,7 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
             <div className="pt-2 border-t border-red-200/60 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => { loginWithGoogleRedirect(); }}
+                onClick={() => { handleGoogleSignIn(); }}
                 className="px-3.5 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-[11px] transition-colors shadow-2xs flex items-center gap-1.5"
               >
                 <span>Continue with Google via Redirect →</span>
@@ -272,7 +285,7 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
       )}
 
       {successMessage && (
-        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in">
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2 animate-in fade-in">
           <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
           <div className="flex-1">
             <p className="font-semibold">{successMessage}</p>
@@ -299,7 +312,7 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
               type="button"
               onClick={handleSubmit}
               disabled={isAuthLoading}
-              className="w-full py-2.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-all flex items-center justify-center gap-2"
             >
               {isAuthLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               <span>Resend Reset Link</span>
@@ -308,24 +321,24 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
             <button
               type="button"
               onClick={() => handleModeChange('login')}
-              className="w-full py-2.5 rounded-lg bg-[#0F2942] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors"
+              className="w-full py-2.5 rounded-xl bg-[#0F2942] hover:bg-[#1D4ED8] text-white text-xs font-bold transition-colors"
             >
               Return to Login
             </button>
           </div>
         </div>
       ) : (
-        /* Main Form */
+        /* Main Auth Form */
         <form onSubmit={handleSubmit} className="space-y-3.5">
           
-          {/* Name for Register */}
+          {/* Full Name for Registration */}
           {mode === 'register' && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Full Name
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
@@ -333,19 +346,19 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={isAuthLoading}
-                  className="w-full pl-9 pr-4 py-2.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#2563EB] disabled:bg-slate-50"
+                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#2563EB] disabled:bg-slate-50 font-medium"
                 />
               </div>
             </div>
           )}
 
-          {/* Email */}
+          {/* Email Address */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="email"
                 required
@@ -353,12 +366,12 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isAuthLoading}
-                className="w-full pl-9 pr-4 py-2.5 text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:border-[#2563EB] disabled:bg-slate-50"
+                className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:border-[#2563EB] disabled:bg-slate-50 font-medium"
               />
             </div>
           </div>
 
-          {/* Password */}
+          {/* Password Input */}
           {(mode === 'login' || mode === 'register') && (
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -367,14 +380,14 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
                   <button
                     type="button"
                     onClick={() => handleModeChange('forgot')}
-                    className="text-[11px] font-semibold text-[#2563EB] hover:underline"
+                    className="text-[11px] font-bold text-[#2563EB] hover:underline"
                   >
                     Forgot Password?
                   </button>
                 )}
               </div>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
@@ -382,56 +395,56 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isAuthLoading}
-                  className="w-full pl-9 pr-10 py-2.5 text-xs rounded-lg border border-slate-300 bg-white font-mono focus:outline-none focus:border-[#2563EB] disabled:bg-slate-50"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs rounded-xl border border-slate-300 bg-white font-mono focus:outline-none focus:border-[#2563EB] disabled:bg-slate-50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
               {mode === 'register' && (
-                <p className="text-[10px] text-slate-400 mt-1">Must be at least 6 characters</p>
+                <p className="text-[10px] text-slate-400 mt-1">Must be at least 6 characters long</p>
               )}
             </div>
           )}
 
-          {/* Remember Me */}
+          {/* Remember Me Checkbox */}
           {mode === 'login' && (
             <div className="flex items-center justify-between text-xs text-slate-600">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer font-medium">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="rounded border-slate-300 text-[#2563EB]"
                 />
-                Remember Me
+                <span>Remember Session</span>
               </label>
             </div>
           )}
 
-          {/* Primary Submit Button */}
+          {/* Primary Action Button */}
           <button
             type="submit"
             disabled={isAuthLoading}
-            className="w-full py-2.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold shadow-xs transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+            className="w-full py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             {isAuthLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Processing...</span>
+                <span>Signing In...</span>
               </>
             ) : (
               <>
                 <span>
-                  {mode === 'login' && 'Sign In'}
-                  {mode === 'register' && 'Create Account'}
+                  {mode === 'login' && `Sign In as ${role.toUpperCase()}`}
+                  {mode === 'register' && `Create ${role.toUpperCase()} Account`}
                   {mode === 'forgot' && 'Send Reset Link'}
                 </span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-4 h-4" />
               </>
             )}
           </button>
@@ -439,13 +452,13 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
         </form>
       )}
 
-      {/* Divider & Google SSO */}
+      {/* Google SSO */}
       {(mode === 'login' || mode === 'register') && (
         <div className="space-y-3 pt-2">
           <div className="relative">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200" /></div>
-            <div className="relative text-[10px] text-slate-400 uppercase tracking-wider bg-white px-2 text-center inline-block w-full">
-              Or
+            <div className="relative text-[10px] text-slate-400 font-extrabold uppercase tracking-wider bg-white px-3 text-center inline-block w-full">
+              Or Continue With
             </div>
           </div>
 
@@ -453,12 +466,12 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
             type="button"
             onClick={handleGoogleSignIn}
             disabled={isAuthLoading}
-            className="w-full py-2.5 px-3 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+            className="w-full py-2.5 px-3 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-all flex items-center justify-center gap-2.5 shadow-2xs disabled:opacity-60 cursor-pointer"
           >
             {isAuthLoading ? (
               <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
             ) : (
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
@@ -471,12 +484,12 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
       )}
 
       {/* Switch Mode Link */}
-      <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100">
+      <div className="text-center text-xs text-slate-500 pt-2 border-t border-slate-100 font-medium">
         {mode === 'login' && (
           <span>
             Don't have an account?{' '}
             <button onClick={() => handleModeChange('register')} className="text-[#2563EB] font-bold hover:underline">
-              Sign Up
+              Create One Here
             </button>
           </span>
         )}
@@ -495,15 +508,36 @@ export const EducationalAuthForm: React.FC<EducationalAuthFormProps> = ({
         )}
       </div>
 
-      {/* Quick Demo Autofill */}
+      {/* Quick Autofill Demo Buttons */}
       <div className="pt-2">
-        <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase mb-1">
-          <span>Autofill Demo Account:</span>
+        <div className="flex items-center justify-between text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-1">
+          <span>Quick Demo Autofill:</span>
         </div>
-        <div className="grid grid-cols-3 gap-1">
-          <button onClick={() => handleAutofillDemo('student')} disabled={isAuthLoading} className="p-1.5 rounded bg-slate-100 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">Student</button>
-          <button onClick={() => handleAutofillDemo('teacher')} disabled={isAuthLoading} className="p-1.5 rounded bg-slate-100 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">Teacher</button>
-          <button onClick={() => handleAutofillDemo('admin')} disabled={isAuthLoading} className="p-1.5 rounded bg-slate-100 text-[10px] font-semibold text-slate-600 hover:bg-slate-200">Admin</button>
+        <div className="grid grid-cols-3 gap-1.5">
+          <button 
+            type="button" 
+            onClick={() => handleAutofillDemo('student')} 
+            disabled={isAuthLoading} 
+            className="p-1.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-700 hover:bg-blue-50 hover:text-[#2563EB] border border-slate-200 transition-colors"
+          >
+            Student
+          </button>
+          <button 
+            type="button" 
+            onClick={() => handleAutofillDemo('teacher')} 
+            disabled={isAuthLoading} 
+            className="p-1.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 transition-colors"
+          >
+            Teacher
+          </button>
+          <button 
+            type="button" 
+            onClick={() => handleAutofillDemo('owner')} 
+            disabled={isAuthLoading} 
+            className="p-1.5 rounded-lg bg-slate-100 text-[10px] font-bold text-slate-700 hover:bg-amber-50 hover:text-amber-800 border border-slate-200 transition-colors"
+          >
+            Owner
+          </button>
         </div>
       </div>
 
