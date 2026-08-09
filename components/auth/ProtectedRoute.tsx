@@ -181,6 +181,53 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
     );
   }
 
-  // Render protected content when authenticated & verified
+  // Strict Role Verification (RBAC)
+  if (requiredRole) {
+    const isOwnerRole = requiredRole === 'owner' || requiredRole === 'admin';
+    const hasOwnerAccess = user.role === 'owner' || user.role === 'admin';
+
+    const isAuthorized = isOwnerRole ? hasOwnerAccess : user.role === requiredRole;
+
+    if (!isAuthorized) {
+      const getAppropriateRedirect = () => {
+        if (user.role === 'teacher') return '/dashboard/teacher';
+        if (hasOwnerAccess) return '/dashboard/admin';
+        return '/dashboard/student';
+      };
+
+      return (
+        <div className="min-h-[70vh] flex items-center justify-center p-4 sm:p-6">
+          <div className="max-w-md w-full bg-white rounded-2xl border border-red-200 shadow-xl p-6 sm:p-8 text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-600 mx-auto flex items-center justify-center border border-red-100">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[10px] font-extrabold tracking-wider text-red-600 uppercase bg-red-50 px-2.5 py-1 rounded-full border border-red-200">
+                403 Access Denied
+              </span>
+              <h2 className="text-xl font-bold text-[#0F2942]">Restricted Access Area</h2>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Your current account role (<strong className="capitalize text-slate-800">{user.role}</strong>) does not have permission to view this section.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                href={getAppropriateRedirect()}
+                className="w-full py-2.5 rounded-lg bg-[#0F2942] hover:bg-[#1D4ED8] text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-all"
+              >
+                <span>Return to Your Dashboard</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // Render protected content when authenticated, verified & role authorized
   return <>{children}</>;
 };
+

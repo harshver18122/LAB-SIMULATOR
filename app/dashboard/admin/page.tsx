@@ -6,7 +6,7 @@ import { ProtectedRoute } from '../../../components/auth/ProtectedRoute';
 
 export default function AdminDashboardPage() {
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requiredRole="owner">
       <AdminDashboardView />
     </ProtectedRoute>
   );
